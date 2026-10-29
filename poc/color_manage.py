@@ -10,6 +10,12 @@ class ColorMapResult(BaseModel):
     width: int
     height: int
 
+class Vector(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    rgb: NDArray[np.int32]
+    weight: float
+    tag: str
+
 def k_means_apply(img_array):
     height = len(img_array)
     width = len(img_array[0])
@@ -28,10 +34,17 @@ def k_means_apply(img_array):
             else:
                 point_by_color[rgb].append([h * width + w])
 
-    for color in point_by_color:
+    v_idx = 0
+    vectors = {}
+    for color, point in point_by_color.items():
         rgb = [int(x) for x in color.split(".")]
         # there are color settings here we will ignore for now
-        weight = len(point_by_color[color]) / num_pixels 
+        weight = len(point) / num_pixels
+        vectors[v_idx] = Vector(
+            rgb = rgb,
+            weight = weight,
+            tag = color,
+        )
         
 
 def create_colormap(img_array) -> ColorMapResult:
