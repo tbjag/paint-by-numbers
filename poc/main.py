@@ -1,31 +1,16 @@
 from PIL import Image
 import numpy as np
-from pydantic import BaseModel
+from color_manage import create_colormap, ColorMapResult
 
-class RGB(BaseModel):
-    r: int
-    g: int
-    b: int
-
-image_path = '../images/casey.jpg'
+image_path = '../images/testinput.png'
 
 img = Image.open(image_path)
 img_array = np.asarray(img)
 
-color_index = 0
-colors = {}
-colors_by_index = []
+colormap: ColorMapResult = create_colormap(img_array)
+print(colormap.colors_by_index)
+# k-means diy
+# maybe we can add bitchopping later? just model the result
 
 
-# colormap go through each point
-# add to dict if already seen
-print(img_array.shape)
-height = len(img_array)
-width = len(img_array[0])
-for h in range(height):
-    for w in range(width):
-        r = img_array[h][w][0]
-        g = img_array[h][w][1]
-        b = img_array[h][w][2]
-        print(r,g,b)
         
