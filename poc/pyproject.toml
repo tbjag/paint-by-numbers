@@ -7,3 +7,8 @@ dependencies = [
     "pillow>=13.0.0",
     "pydantic>=2.14.1",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.3",
+]

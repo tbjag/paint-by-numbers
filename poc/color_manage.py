@@ -1,7 +1,7 @@
-from PIL import Image
 import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict
+
 
 class ColorMapResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -10,11 +10,12 @@ class ColorMapResult(BaseModel):
     width: int
     height: int
 
+
 class Vector(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    rgb: NDArray[np.int32]
+    rgb: list[int]
     weight: float
     tag: str
+
 
 def k_means_apply(img_array):
     height = len(img_array)
@@ -28,7 +29,7 @@ def k_means_apply(img_array):
             r = img_array[h][w][0] >> bits_chop << bits_chop
             g = img_array[h][w][1] >> bits_chop << bits_chop
             b = img_array[h][w][2] >> bits_chop << bits_chop
-            rgb = f'{r}.{g}.{b}'
+            rgb = f"{r}.{g}.{b}"
             if rgb not in point_by_color:
                 point_by_color[rgb] = [h * width + w]
             else:
@@ -41,11 +42,25 @@ def k_means_apply(img_array):
         # there are color settings here we will ignore for now
         weight = len(point) / num_pixels
         vectors[v_idx] = Vector(
-            rgb = rgb,
-            weight = weight,
-            tag = color,
+            rgb=rgb,
+            weight=weight,
+            tag=color,
         )
-        
+
+    # get random seed
+    # initialize centroids - for range(k) create centroid in list (num points * random.next)
+    #                        ptsPerCategory push an empty list range(k)
+    #
+    # every step:
+    #   clear all ptsPerCategory lists
+    #   for every point:
+    #       min distance = max_float; centroid idx = -1
+    #       for range(k)
+    #           find distance to centroid[k_idx]
+    #           if distance < minDist => assign centroid_idx to k_idx, mindist to dist
+    #       push centroid_idx to category
+    #
+
 
 def create_colormap(img_array) -> ColorMapResult:
     height = len(img_array)
@@ -61,7 +76,7 @@ def create_colormap(img_array) -> ColorMapResult:
             r = img_array[h][w][0]
             g = img_array[h][w][1]
             b = img_array[h][w][2]
-            rgb = f'{r}.{g}.{b}'
+            rgb = f"{r}.{g}.{b}"
             current_color_index = -1
             if rgb not in colors:
                 colors[rgb] = color_index
@@ -71,10 +86,10 @@ def create_colormap(img_array) -> ColorMapResult:
             else:
                 current_color_index = colors[rgb]
             img_color_indices[h][w] = current_color_index
-    
+
     return ColorMapResult(
         img_color_indices=img_color_indices,
         colors_by_index=colors_by_index,
         width=width,
-        height=height
+        height=height,
     )
