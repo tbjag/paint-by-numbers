@@ -25,3 +25,9 @@ facets
 1. apply k-means to get N colors - learn k-means again https://en.wikipedia.org/wiki/K-means_clustering
 2. get the color map itself of N colors separately
 3. 
+
+
+## todos
+- find logging library
+- do we need to defer images/data if we have pulled everything out of it?
+- automatic conversion using ffmpeg or something if raylib cant parse the image
