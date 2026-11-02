@@ -37,5 +37,33 @@ main :: proc() {
 	// print out image info here as well
 	fmt.printfln("Image width: %d height: %d", img.width, img.height)
 	fmt.printfln("Successfully loaded %d RGB tuples.", len(rgb_list))
-	
+
+	K :: 15
+	random_indices := sample_image_coordinates(len(rgb_list), K)
+	defer delete(random_indices)
+
+	preprocess_image(rgb_list[:])
+	run_kmeans(rgb_list[:], K)
+
+	// convert RGB -> RGBA for raylib
+//     out_colors := make([]rl.Color, len(rgb_list))
+//     defer delete(out_colors)
+//     for p, i in rgb_list {
+//             out_colors[i] = rl.Color{p.r, p.g, p.b, 255}
+//     }
+// 
+//     // wrap the buffer in an Image (raylib doesn't own this memory, so don't UnloadImage it)
+//     out_img := rl.Image{
+//             data    = raw_data(out_colors),
+//             width   = img.width,
+//             height  = img.height,
+//             mipmaps = 1,
+//             format  = .UNCOMPRESSED_R8G8B8A8,
+//     }
+// 
+//     if rl.ExportImage(out_img, "images/out.png") {
+//             fmt.println("saved out.png")
+//     } else {
+//             fmt.println("failed to save image")
+//     }
 }

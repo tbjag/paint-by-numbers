@@ -12,9 +12,6 @@ Vector :: struct {
 }
 
 KMeans :: struct {
-	current_iteration: int,
-	points_per_category: [dynamic][dynamic]Vector,
-	centroids: [dynamic]Vector,
-	current_delta_difference: f32,
-	// add pts. here
+	rgb: RGB
+	
 }
