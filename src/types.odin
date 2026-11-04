@@ -6,12 +6,19 @@ RGB :: struct {
 	b: u8
 }
 
-Vector :: struct {
-	values: [dynamic]RGB,
-	weight: int,
+Point :: struct {
+	x, y: int
 }
 
-KMeans :: struct {
-	rgb: RGB
-	
+BoundingBox :: struct {
+	min_x, max_x: int,
+	min_y, max_y: int
+}
+
+Facet :: struct {
+	color: RGB,
+	pixel_num: int,
+	bbox: BoundingBox,
+	border_points: [dynamic]Point,
+	neighbour_facets: []int
 }
