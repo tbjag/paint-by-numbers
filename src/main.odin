@@ -47,7 +47,8 @@ main :: proc() {
 	preprocess_image(rgb_list[:])
 	run_kmeans(rgb_list[:], K)
 
-
+	fmt.printfln("w: %d h:%d", int(img.width), int(img.height))
+	create_facets(rgb_list[:], int(img.width), int(img.height))
 
 	
 	// convert RGB -> RGBA for raylib
