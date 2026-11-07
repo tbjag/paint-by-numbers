@@ -18,7 +18,7 @@ BoundingBox :: struct {
 Facet :: struct {
 	color: RGB,
 	pixel_num: int,
-	bbox: BoundingBox,
+	// bbox: BoundingBox,
 	border_points: [dynamic]Point,
-	neighbour_facets: []int
+	// neighbour_facets: []int
 }

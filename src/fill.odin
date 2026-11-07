@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:slice"
 // algorithm:
 // define facet 
 // pick a point
@@ -26,68 +27,94 @@ flood_fill :: proc(pixels: []RGB, x, y: int, ) {
 
 
 create_facets :: proc(pixels: []RGB, width, height: int) {
-	seen := make([]bool, len(pixels))
+	img_size := len(pixels)
+	seen := make([]bool, img_size)
+	stack := make([dynamic]int) // pixel location idx
+	facets := make([dynamic]Facet)
 	defer delete(seen)
-
-	// try building this for 1 facet only at 0,0
-	stack := make([dynamic]int) // pixel locations
 	defer delete(stack)
-	border_points := make([dynamic]Point, 0)
-	defer delete(border_points)
+	defer {
+		for f in facets do delete(f.border_points)
+	}
+	defer delete(facets)
 
-	append(&stack, 0)
-	curr_color := pixels[0]
+	// plan:
+	// 1. do for all facets - done
+	// 2. remove duplicate border pts.
+	// 3. refactor function
 
-	//almost done, duplicate border points  & add edges
-	// consolidate checking as well
-	for len(stack) > 0 {
-		// pop off stack
-		curr_index := pop(&stack)
-		if seen[curr_index] do continue
-		seen[curr_index] = true
-		if pixels[curr_index] != curr_color do continue
-		// if any of the neighbours are a diff color
-		// then assign border
-		x := curr_index % width
-		y := curr_index / width
-
-		// check neighbours
-		if x != 0 {
-			if pixels[y * width + x - 1] != curr_color {
-				append(&border_points, {x, y})
-			} else if !seen[y * width + x - 1] {
-				append(&stack, y * width + x - 1)
+	for {
+		i := -1
+		for s, seen_idx in seen {
+			if !s {
+				i = seen_idx
+				break
 			}
 		}
-		if x != width - 1 {
-			if pixels[y * width + x + 1] != curr_color {
-				append(&border_points, {x, y})
-			} else if !seen[y * width + x + 1] {
-				append(&stack, y * width + x + 1)
-			}
-		}
-		if y != 0 {
-		 	if pixels[(y - 1)* width + x] != curr_color {
-				append(&border_points, {x, y})
-			} else if !seen[(y - 1)* width + x] {
-				append(&stack, (y - 1)* width + x)
-			}
-			
-		}
-		if y != height - 1 {
-	 		if pixels[((y + 1)* width) + x] != curr_color {
-				append(&border_points, {x, y})
-			} else if !seen[(y + 1)* width + x] {
-				append(&stack, (y + 1)* width + x)
-			}
+
+		if slice.all_of(seen, true) {
+			break
 		}
 		
+		append(&stack, i)
+		curr_color := pixels[i]
+		border_points := make([dynamic]Point, 0)
+		pixel_num := 0
+
+		for len(stack) > 0 {
+			curr_index := pop(&stack)
+			if seen[curr_index] do continue
+			seen[curr_index] = true
+			if pixels[curr_index] != curr_color do continue
+			pixel_num += 1
+			
+			x := curr_index % width
+			y := curr_index / width
+	
+			// check neighbours
+			if x != 0 {
+				if pixels[y * width + x - 1] != curr_color {
+					append(&border_points, {x, y})
+				} else if !seen[y * width + x - 1] {
+					append(&stack, y * width + x - 1)
+				}
+			}
+			if x != width - 1 {
+				if pixels[y * width + x + 1] != curr_color {
+					append(&border_points, {x, y})
+				} else if !seen[y * width + x + 1] {
+					append(&stack, y * width + x + 1)
+				}
+			}
+			if y != 0 {
+			 	if pixels[(y - 1)* width + x] != curr_color {
+					append(&border_points, {x, y})
+				} else if !seen[(y - 1)* width + x] {
+					append(&stack, (y - 1)* width + x)
+				}
+				
+			}
+			if y != height - 1 {
+		 		if pixels[((y + 1)* width) + x] != curr_color {
+					append(&border_points, {x, y})
+				} else if !seen[(y + 1)* width + x] {
+					append(&stack, (y + 1)* width + x)
+				}
+			}
+		}
+		f := Facet {
+			color= curr_color,
+			pixel_num = pixel_num,
+			border_points = border_points
+		}
+		append(&facets, f)
+
 	}
 
 	
 	
-	for p in border_points {
-		fmt.printfln("x: %d, y: %d", p.x, p.y)
+	for f in facets {
+		fmt.printfln("facet_color: %d, %d, %d; num_pixels: %d", f.color.r, f.color.g, f.color.b, f.pixel_num)
 	}
 	fmt.println("finished filling 0")
 }
