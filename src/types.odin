@@ -19,6 +19,6 @@ Facet :: struct {
 	color: RGB,
 	pixel_num: int,
 	// bbox: BoundingBox,
-	border_points: [dynamic]Point,
+	border_points: map[Point]struct{}
 	// neighbour_facets: []int
 }

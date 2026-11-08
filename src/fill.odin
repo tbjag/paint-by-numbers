@@ -40,7 +40,7 @@ create_facets :: proc(pixels: []RGB, width, height: int) {
 
 	// plan:
 	// 1. do for all facets - done
-	// 2. remove duplicate border pts.
+	// 2. remove duplicate border pts. - done
 	// 3. refactor function
 
 	for {
@@ -58,7 +58,7 @@ create_facets :: proc(pixels: []RGB, width, height: int) {
 		
 		append(&stack, i)
 		curr_color := pixels[i]
-		border_points := make([dynamic]Point, 0)
+		border_points := make(map[Point]struct{})
 		pixel_num := 0
 
 		for len(stack) > 0 {
@@ -74,21 +74,21 @@ create_facets :: proc(pixels: []RGB, width, height: int) {
 			// check neighbours
 			if x != 0 {
 				if pixels[y * width + x - 1] != curr_color {
-					append(&border_points, {x, y})
+					border_points[{x,y}] = struct{}{}
 				} else if !seen[y * width + x - 1] {
 					append(&stack, y * width + x - 1)
 				}
 			}
 			if x != width - 1 {
 				if pixels[y * width + x + 1] != curr_color {
-					append(&border_points, {x, y})
+					border_points[{x,y}] = struct{}{}
 				} else if !seen[y * width + x + 1] {
 					append(&stack, y * width + x + 1)
 				}
 			}
 			if y != 0 {
 			 	if pixels[(y - 1)* width + x] != curr_color {
-					append(&border_points, {x, y})
+					border_points[{x,y}] = struct{}{}
 				} else if !seen[(y - 1)* width + x] {
 					append(&stack, (y - 1)* width + x)
 				}
@@ -96,7 +96,7 @@ create_facets :: proc(pixels: []RGB, width, height: int) {
 			}
 			if y != height - 1 {
 		 		if pixels[((y + 1)* width) + x] != curr_color {
-					append(&border_points, {x, y})
+					border_points[{x,y}] = struct{}{}
 				} else if !seen[(y + 1)* width + x] {
 					append(&stack, (y + 1)* width + x)
 				}
