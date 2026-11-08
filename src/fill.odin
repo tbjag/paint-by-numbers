@@ -2,29 +2,6 @@ package main
 
 import "core:fmt"
 import "core:slice"
-// algorithm:
-// define facet 
-// pick a point
-// 		check if facet is already owned
-//  	attribute to facet
-// 		put 4 neighbours onto stack
-// continue until no more pixels on stack
-
-// data structures needed:
-// seen set
-
-
-find_empty_pixel :: proc (pixels: []RGB, width: int) -> Maybe(Point) {
-	for pixel, idx in pixels {
-		
-	}
-	return nil
-}
-
-flood_fill :: proc(pixels: []RGB, x, y: int, ) {
-	
-}
-
 
 create_facets :: proc(pixels: []RGB, width, height: int) {
 	img_size := len(pixels)
@@ -38,22 +15,13 @@ create_facets :: proc(pixels: []RGB, width, height: int) {
 	}
 	defer delete(facets)
 
-	// plan:
-	// 1. do for all facets - done
-	// 2. remove duplicate border pts. - done
-	// 3. refactor function
-
-	for {
+	for !slice.all_of(seen, true) {
 		i := -1
 		for s, seen_idx in seen {
 			if !s {
 				i = seen_idx
 				break
 			}
-		}
-
-		if slice.all_of(seen, true) {
-			break
 		}
 		
 		append(&stack, i)
@@ -70,44 +38,26 @@ create_facets :: proc(pixels: []RGB, width, height: int) {
 			
 			x := curr_index % width
 			y := curr_index / width
+
+			dirs := [4][2]int{{-1,0},{1,0},{0,-1},{0,1}}
+
+			for d in dirs {
+				nx, ny := x + d.x, y + d.y
+				if nx < 0 || nx >= width || ny < 0 || ny >= height do continue
+				ni := ny * width + nx
+				if pixels[ni] != curr_color {
+					border_points[{x,y}] = {}
+				} else if !seen[ni] {
+					append(&stack, ni)
+				}
+			}
 	
-			// check neighbours
-			if x != 0 {
-				if pixels[y * width + x - 1] != curr_color {
-					border_points[{x,y}] = struct{}{}
-				} else if !seen[y * width + x - 1] {
-					append(&stack, y * width + x - 1)
-				}
-			}
-			if x != width - 1 {
-				if pixels[y * width + x + 1] != curr_color {
-					border_points[{x,y}] = struct{}{}
-				} else if !seen[y * width + x + 1] {
-					append(&stack, y * width + x + 1)
-				}
-			}
-			if y != 0 {
-			 	if pixels[(y - 1)* width + x] != curr_color {
-					border_points[{x,y}] = struct{}{}
-				} else if !seen[(y - 1)* width + x] {
-					append(&stack, (y - 1)* width + x)
-				}
-				
-			}
-			if y != height - 1 {
-		 		if pixels[((y + 1)* width) + x] != curr_color {
-					border_points[{x,y}] = struct{}{}
-				} else if !seen[(y + 1)* width + x] {
-					append(&stack, (y + 1)* width + x)
-				}
-			}
 		}
-		f := Facet {
+		append(&facets, Facet {
 			color= curr_color,
 			pixel_num = pixel_num,
 			border_points = border_points
-		}
-		append(&facets, f)
+		})
 
 	}
 
