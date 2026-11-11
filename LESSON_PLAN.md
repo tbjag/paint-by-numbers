@@ -11,6 +11,51 @@ Method (from [amosblomqvist/learn](https://github.com/amosblomqvist/learn)'s tea
 3. **Build**: I write all the Rust. AI explains compiler errors and asks leading questions only.
 4. **Checkpoint**: every milestone writes a debug PNG plus `#[test]`s on tiny hand-made grids.
 
+## Tutor instructions (for future AI sessions)
+
+Read this whole file at the start of every session. It is the source of truth for progress and pace.
+
+**Session start**
+- Read `## Progress notes` and `## Quiz log` to see where things stand and what was deferred.
+- Read `src/`, then run `cargo build` and `cargo clippy` to see the current state of the code.
+- Briefly say where things stand and what's next, then follow the learner's lead.
+
+**Code ownership**
+- Never write or edit the learner's project code (`src/*.rs`, `archive/*.odin`) unless explicitly asked.
+- Allowed: one-line API usage examples taken from docs, small concept examples that aren't the milestone solution, and before/after snippets of the learner's *own* lines when explaining a style point.
+- Toolchain and environment fixes are fine.
+- Panics with `.expect("msg")` are fine until M9. Don't push error handling earlier.
+
+**The learning loop (from the learn harness)**
+1. **Probe** before each milestone with AskUserQuestion quizzes, up to 4 questions per call.
+   - Options are bare claims of the same form, built as realistic misconceptions.
+   - Vary where the correct answer sits, and don't mark it with length, emphasis or "Recommended".
+   - If everything is right, escalate difficulty. Around a miss or an unsure answer, ask 2–3 follow-ups on the same strand to tell a slip from a gap.
+2. **Teach** the gap: why it matters for this project, what it is, and a link to Odin/Go/Python (the learner's own Odin code is the best bridge). Use a small table or ASCII diagram when it helps.
+3. **Check** with about 2 quiz questions.
+4. **Log** to `## Quiz log`, and update the milestone checkboxes and `## Progress notes`.
+
+**Code reviews** (when asked to "check my work")
+- Read the file, build it, run clippy, and run the program. Verify output when possible (e.g. pixel-compare PNGs using the `poc/` uv environment with `python -I`).
+- Give numbered pointers, most important first, with line numbers and the *why*.
+- Say clearly what's already good. Say clearly when the milestone is done.
+
+**Pace and style**
+- Small questions get small, focused answers. One milestone step at a time.
+- Defer concepts until the learner feels the friction (e.g. `usize` everywhere waits for M3). Mention "later, not now" items and record them under Deferred.
+- When the learner pushes back with a valid point, say they're right and adjust.
+- Teach *how to find* answers rather than handing over APIs:
+  - name the docs page and section (docs.rs / `cargo doc --open`);
+  - read signatures (`&self` vs `self`, generics, type aliases);
+  - grep crate source in `~/.cargo/registry/src/*/<crate>-<version>/`.
+- Verify API claims against the locally downloaded crate source before stating them (e.g. image 0.25.10).
+- Be encouraging, not preachy. If the learner is hard on themselves, reassure briefly and move on.
+
+**Learner profile**
+- Background: Go, Python, Odin. Learning Rust to work without AI.
+- Prefers working code first and idiomatic refactors later.
+- Wants to stay close to the TS reference and their own Odin port.
+
 ## Independence habits
 
 - Read the whole compiler error before doing anything.
@@ -88,6 +133,37 @@ Notes on `archive/fill.odin` to keep in mind when porting:
 
 M0–M3 are mostly porting logic I already understand. The genuinely new algorithms start at M4.
 
+## Progress notes
+
+### M0 (done 2026-11-10)
+
+`src/main.rs`: CLI arg → `ImageReader::open().decode()` → `into_rgb8()` → `Vec<Rgb>` (own struct, row-major) →
+`ImageBuffer::from_fn` → `output/out.png`. Output verified pixel-identical to input.
+
+Learned:
+- **Vec vs slices:** a `Vec` is a (ptr, len, cap) header plus a heap buffer; a move copies only the header; `&mut Vec` → `&mut [T]` by deref coercion.
+- **`to_*` vs `into_*`:** `&self` borrows and returns a copy; `self` consumes.
+- **Shadowing:** reusing a name with `let` creates a new variable; the old value stays alive until scope end.
+- **Patterns:** tuple structs (`Rgb(pub [T; 3])` → `.0`), destructuring `let [r, g, b] = rgb.0;`, field init shorthand `Rgb { r, g, b }`.
+- **Closures and inference:** a first closure capturing by borrow (`from_fn`), with the image type inferred from the closure's return.
+- **Casts:** `as` binds tighter than `*`/`+`; cast at the boundary (`usize` internally, `as u32` into the image API).
+- **Tooling:** `cargo run -- <args>`, reading panics (first two lines, then the first frame in your own code), `.unwrap()` / `.expect()` / `?`.
+- **Docs navigation:** sidebar Methods vs Trait Implementations, clicking through return types and type aliases, struct-level examples, grepping `~/.cargo/registry`.
+
+Deferred (later, not now):
+- Line 30 polish: `let p = img[idx];` instead of indexing 3 times.
+- `cargo fmt` habit; add `output/` to `.gitignore`.
+- `impl From<Rgb> for image::Rgb<u8>` once the conversion appears twice (M2).
+- The `@TODO` map: `.pixels().map(...).collect()` (Book ch. 13).
+- `Grid<T>` with `width: usize` and casts only at the edges (M2/M3).
+- Real error handling instead of `expect` (M9).
+
+### Next up: M1 (k-means)
+
+Probe topics: `mod` files, `HashMap` for counting unique colors, `&[Rgb]` and `&mut [Rgb]` in one function,
+`f32`/`f64` and casts, seeding your own RNG (port `src/random.ts`), `--release`.
+First build step: `fn preprocess(pixels: &mut [Rgb])` (bit-chop, port of Odin `preprocess_image`).
+
 ## Rust shifts from Go/Python/Odin
 
 - **`defer delete` → Drop:** cleanup is automatic and correctly ordered.
@@ -104,3 +180,4 @@ M0–M3 are mostly porting logic I already understand. The genuinely new algorit
 |---|---|---|---|
 | 2026-11-10 | M0 probe | Moves (Q1), Drop at scope end (Q2), `?` (Q3), debug overflow panic (Q4), borrow conflict on push (Q5), Copy rules (Q6), release-mode wrapping (Q8) | Vec memory layout and move cost (Q9), `&mut Vec` → `&mut [T]` coercion (Q10), Vec vs slice capabilities (Q11), prefers Vec in/out over `&mut [T]` (Q7) |
 | 2026-11-10 | Lesson 1: Vec memory | Taught Vec = (ptr, len, cap) header + heap buffer, slices as views, deref coercion. Both checks correct (signature choice, clone vs move cost) | (closed) |
+| 2026-11-10 | M0 build | Shipped M0 independently after doc-navigation coaching; correctly pushed back on premature `usize` advice, then chose `usize` with boundary casts | Finding methods in docs (trait vs inherent, struct-level examples): improving. Tuple struct field syntax: taught |
