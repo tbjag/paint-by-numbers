@@ -1,7 +1,11 @@
+mod kmeans;
+
 use image::{ImageBuffer, ImageReader};
 
+use crate::kmeans::preprocess;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct Rgb {
+pub struct Rgb {
     r: u8,
     g: u8,
     b: u8
@@ -16,18 +20,20 @@ fn main() {
 
     let raw_img = raw_img.into_rgb8(); //consume as we dont need it anymore
 
-    let mut img: Vec<Rgb> = Vec::with_capacity(width * height);
+    let mut pixels: Vec<Rgb> = Vec::with_capacity(width * height);
     for rgb in raw_img.pixels() { // @TODO can prob make this a map
         let [r, g, b] = rgb.0;
         let v = Rgb{
             r, g, b
         };
-        img.push(v);
+        pixels.push(v);
     }
+
+    preprocess(&mut pixels);
     
     let output = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
         let idx = y as usize * width + x as usize;
-        image::Rgb([img[idx].r, img[idx].g, img[idx].b])
+        image::Rgb([pixels[idx].r, pixels[idx].g, pixels[idx].b])
     });
     output.save("output/out.png").expect("failed saving image");
     println!("saved image!");
