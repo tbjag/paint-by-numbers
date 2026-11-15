@@ -2,7 +2,7 @@ mod kmeans;
 
 use image::{ImageBuffer, ImageReader};
 
-use crate::kmeans::preprocess;
+use crate::kmeans::{preprocess, run_kmeans};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Rgb {
@@ -21,7 +21,7 @@ fn main() {
     let raw_img = raw_img.into_rgb8(); //consume as we dont need it anymore
 
     let mut pixels: Vec<Rgb> = Vec::with_capacity(width * height);
-    for rgb in raw_img.pixels() { // @TODO can prob make this a map
+    for rgb in raw_img.pixels() { // @TODO can prob make this a map function
         let [r, g, b] = rgb.0;
         let v = Rgb{
             r, g, b
@@ -29,7 +29,10 @@ fn main() {
         pixels.push(v);
     }
 
+    let k = 10;
+
     preprocess(&mut pixels);
+    run_kmeans(&mut pixels, k);
     
     let output = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
         let idx = y as usize * width + x as usize;
