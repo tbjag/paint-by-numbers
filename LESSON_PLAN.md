@@ -55,6 +55,8 @@ Read this whole file at the start of every session. It is the source of truth fo
 - Background: Go, Python, Odin. Learning Rust to work without AI.
 - Prefers working code first and idiomatic refactors later.
 - Wants to stay close to the TS reference and their own Odin port.
+- Finds Rust cumbersome and tends to polish small errors before the program works. Remind gently: lazy first, refactor after it runs.
+- Learns well from reading panics and re-reading against the Odin code. Prefers leading questions to being handed the fix, but a precise pointer (line + "compare with line N") works.
 
 ## Independence habits
 
@@ -94,7 +96,7 @@ Notes on `archive/fill.odin` to keep in mind when porting:
   - Done when `cargo run -- images/testinput.png` writes `out.png`.
   - Concepts: cargo/crates, `Result` and `?`, `Vec`, `as` casts, Drop vs `defer`.
   - Reading: Book ch. 1–3, 9.
-- [ ] **M1: k-means.** `Rgb` struct, bit chop, distance, step/run, seeded RNG (port `src/random.ts`).
+- [ ] **M1: k-means.** (🟡 ~70%, 2026-11-16: `Rgb`, bit chop, distance, step, run all written in `src/kmeans.rs` and `out.png` is produced. Remaining: seeded RNG, unique colors weighted by count.) `Rgb` struct, bit chop, distance, step/run, seeded RNG (port `src/random.ts`).
   - Done when the quantized PNG matches the Odin output. Then switch to unique colors weighted by count, as TS does.
   - Concepts: `&[T]` vs `&mut [T]`, ownership, `#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]`, `mod` files, `HashMap`, `--release`.
   - Reading: Book ch. 4, 5, 7, 8.
@@ -157,12 +159,46 @@ Deferred (later, not now):
 - The `@TODO` map: `.pixels().map(...).collect()` (Book ch. 13).
 - `Grid<T>` with `width: usize` and casts only at the edges (M2/M3).
 - Real error handling instead of `expect` (M9).
+- Still open from M0 (checked 2026-11-16): `output/` not in `.gitignore`; `main.rs:24` pixel loop still a `for` + `push` (`.map().collect()`).
+- Clippy items in `kmeans.rs`: `.enumerate()` instead of `centroid_idx` counter, drop `.clone()` on `Copy`, unused `use std::vec`.
+- `>> N << N` vs `& !0b11` (cosmetic; kept to mirror TS/Odin).
+- `as` casts: recheck float→int saturation and int→int truncation when k-means centroid math is next touched (`kmeans.rs:61-63` uses `i32 / i32 as u8`, which is fine for 0–255 averages).
 
-### Next up: M1 (k-means)
+### M1 so far (2026-11-16)
 
-Probe topics: `mod` files, `HashMap` for counting unique colors, `&[Rgb]` and `&mut [Rgb]` in one function,
-`f32`/`f64` and casts, seeding your own RNG (port `src/random.ts`), `--release`.
-First build step: `fn preprocess(pixels: &mut [Rgb])` (bit-chop, port of Odin `preprocess_image`).
+`src/kmeans.rs` (94 lines): `preprocess` (bit chop), `get_distance`, `step_kmeans`, `run_kmeans`. Wired from `main.rs` with `k = 10`.
+Runs and writes `output/out.png`. `cargo build` is clean. Clippy: 2 warnings (manual loop counter `centroid_idx` at line 33, `.clone()` on `Copy` `Rgb` at line 80), plus an unused `use std::vec`.
+
+Learned / fixed with coaching:
+- **`vec![0, n]` vs `vec![0; n]`:** list literal vs repeat. Caused the index-out-of-bounds panic (len 2) in `assignments`.
+- **Forgotten update:** `min_distance` was never assigned, so every pixel picked the last centroid. Found by re-reading against Odin.
+- **Stop condition:** `DELTA_DIFF = 0.0` never settles with truncated integer centroids; `1.0` fixed the apparent infinite loop.
+- **`cargo run --release -- <args>`** vs `cargo build --release` then `./target/release/paint-by-numbers <args>`.
+- Module basics: `mod kmeans;` once in `main.rs`, `pub fn`, `use crate::Rgb;` (private fields are visible to child modules).
+- Iterators: `for pixel in pixels` over `&mut [T]`, `.iter().enumerate()`, `iter_mut()`.
+
+Learner reflection (their own words, worth keeping): write the program the laziest way first, then go back and iron out
+the kinks. A working program is useful; don't polish before it runs.
+
+Still open in M1:
+- **Seeded RNG (decided 2026-11-16: no `random.ts` port, the `rand` crate is fine):** currently `rand::rng()` (non-deterministic). Only change: seed it so runs are repeatable (`SeedableRng::seed_from_u64`, verified in `rand_core-0.10.1/src/seedable_rng.rs:109`; `StdRng` in `rand::rngs`).
+- **Unique colors weighted by count** (`HashMap<Rgb, u32>`). Needs `Hash` + `Eq` derives on `Rgb`. Replaces the per-pixel loop and is much faster.
+- **Quality check:** compare `out.png` to the Odin output once seeded.
+
+Design note for M2: `run_kmeans` currently overwrites `pixels` with centroid colors and throws away `centroids` and `assignments`.
+That is the same flaw as the Odin port (palette indices lost). M2 fixes it by returning them.
+
+TS reference verified 2026-11-16 (`~/workspace/paintbynumbersgenerator`, now cloned):
+- Weighted unique colors: `src/colorreductionmanagement.ts:95-115` (weight = pixels of color / total pixels), weighted mean in `src/lib/clustering.ts:21-46`. Integer counts give the same result (the total cancels).
+- `kMeansMinDeltaDifference = 1` (`src/settings.ts:11`), matching the Rust `DELTA_DIFF = 1.0`.
+- Seed: `randomSeed === 0 ? time : seed`. Initial centroids are random picks from the unique-color list (can repeat; Rust's `index::sample` avoids repeats).
+- TS keeps centroids as floats; Rust truncates to `u8` each step. Possible small palette difference, fine for now.
+
+### Next up
+
+1. Finish M1: weighted unique colors first (speed win, teaches `HashMap`), then the seeded RNG.
+2. Then M2: return `(centroids, assignments)` from `run_kmeans` and build `Grid<u8>`.
+Probe still to run: `HashMap` entry API, seeded RNG (`SeedableRng`, or a hand-rolled LCG as in `random.ts`), integer vs float casts recheck.
 
 ## Rust shifts from Go/Python/Odin
 
@@ -181,4 +217,6 @@ First build step: `fn preprocess(pixels: &mut [Rgb])` (bit-chop, port of Odin `p
 | 2026-11-10 | M0 probe | Moves (Q1), Drop at scope end (Q2), `?` (Q3), debug overflow panic (Q4), borrow conflict on push (Q5), Copy rules (Q6), release-mode wrapping (Q8) | Vec memory layout and move cost (Q9), `&mut Vec` → `&mut [T]` coercion (Q10), Vec vs slice capabilities (Q11), prefers Vec in/out over `&mut [T]` (Q7) |
 | 2026-11-10 | Lesson 1: Vec memory | Taught Vec = (ptr, len, cap) header + heap buffer, slices as views, deref coercion. Both checks correct (signature choice, clone vs move cost) | (closed) |
 | 2026-11-12 | M1 probe | `HashMap` key needs `Hash`+`Eq` (Q1), `mod x;` once in main + `pub` (Q2), `&mut [T]` can't change length (Q3), no implicit int conversion (check) | `as` casts: float→int saturates (guessed panic/wrap), int→int truncates bits (guessed clamp). Taught twice, follow-ups both missed (`-1 as u8` int vs float, `.round()` before cast), so learner to run it in a scratch file; recheck when casts first appear in k-means. Still unprobed: seeded RNG, `--release` |
+| 2026-11-16 | M1 build | Wrote `preprocess`, `get_distance`, `step_kmeans`, `run_kmeans` mostly independently; diagnosed the `vec![0; n]` panic from a pointer; used `&[T]`/`&mut [T]` correctly | `vec![a, b]` vs `vec![a; n]`, forgetting to update `min_distance`, stop-threshold reasoning (`0.0` vs `1.0`), `--release` invocation |
+| 2026-11-16 | M1 probe 2 | `entry().or_insert(0)` with `*` deref (Q1), `HashMap` iteration order is arbitrary (Q2) | Didn't connect map order to determinism: seeded RNG still gives different results if the `Vec` built from a `HashMap` isn't sorted. Taught (`sort_by_key` on `(r,g,b)`) |
 | 2026-11-10 | M0 build | Shipped M0 independently after doc-navigation coaching; correctly pushed back on premature `usize` advice, then chose `usize` with boundary casts | Finding methods in docs (trait vs inherent, struct-level examples): improving. Tuple struct field syntax: taught |
