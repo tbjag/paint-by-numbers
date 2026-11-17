@@ -12,14 +12,14 @@ pub struct Rgb {
 }
 
 fn main() {
-    let image_path = std::env::args()
+    let image_path = std::env::args() // @todo parse crate
         .nth(1)
         .expect("usage: paint-by-numbers <image>");
     let raw_img = ImageReader::open(image_path)
         .expect("error reading image")
         .decode()
         .expect("error decoding image");
-    let width = raw_img.width() as usize;
+    let width = raw_img.width() as usize; // @todo look at all conversions in the repo
     let height = raw_img.height() as usize;
     println!("image read dimensions: {width}x{height}");
 

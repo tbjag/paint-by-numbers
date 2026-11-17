@@ -3,10 +3,13 @@ use std::vec;
 
 use crate::Rgb;
 
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rand::seq::index;
 
 const BITS_CHOP: u8 = 2;
 const DELTA_DIFF: f32 = 1.0;
+const SEED: u64 = 1;
 
 pub fn preprocess(pixels: &mut [Rgb]) {
     // so this mutates in place as far as i understand
@@ -59,15 +62,15 @@ fn step_kmeans(
         assignments[pixel_idx] = min_dist_centroid_idx;
     }
 
-    let mut centroid_sums: Vec<[i32; 3]> = vec![[0; 3]; centroids.len()]; // @todo add typing to this
-    let mut counts: Vec<i32> = vec![0; centroids.len()];
+    let mut centroid_sums: Vec<[i64; 3]> = vec![[0; 3]; centroids.len()]; // @todo struct for sums
+    let mut counts: Vec<i64> = vec![0; centroids.len()];
     for (pixel_idx, centroid_idx) in assignments.iter().enumerate() {
         let (pixel, pixel_count) = pixel_counts[pixel_idx];
         // so here these are pixel counts and we want to give weight to represent
-        centroid_sums[*centroid_idx][0] += pixel.r as i32 * pixel_count as i32;
-        centroid_sums[*centroid_idx][1] += pixel.g as i32 * pixel_count as i32;
-        centroid_sums[*centroid_idx][2] += pixel.b as i32 * pixel_count as i32;
-        counts[*centroid_idx] += pixel_count as i32;
+        centroid_sums[*centroid_idx][0] += pixel.r as i64 * pixel_count as i64;
+        centroid_sums[*centroid_idx][1] += pixel.g as i64 * pixel_count as i64;
+        centroid_sums[*centroid_idx][2] += pixel.b as i64 * pixel_count as i64;
+        counts[*centroid_idx] += pixel_count as i64;
     }
 
     let mut total_distance: f32 = 0.0;
@@ -90,8 +93,8 @@ fn step_kmeans(
 
 pub fn run_kmeans(pixels: &mut [Rgb], k: usize) {
     let pixel_counts = count_colors(pixels);
-    let rng = &mut rand::rng(); // change rng to be seeded if needed
-    let samples = index::sample(rng, pixel_counts.len(), k.min(pixel_counts.len()));
+    let mut rng: StdRng = StdRng::seed_from_u64(SEED);
+    let samples = index::sample(&mut rng, pixel_counts.len(), k.min(pixel_counts.len()));
 
     let mut centroids: Vec<Rgb> = vec![]; // can prob turn this into a map
     for idx in samples {

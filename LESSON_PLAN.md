@@ -15,6 +15,16 @@ Method (from [amosblomqvist/learn](https://github.com/amosblomqvist/learn)'s tea
 
 Read this whole file at the start of every session. It is the source of truth for progress and pace.
 
+**AI-free-first rule (added 2026-11-17, overrides the defaults below where they conflict)**
+- The learner wants to learn *without* AI resources. The AI is a last resort, not the first stop. Default to withholding answers.
+- When the learner asks a question that docs, `rustc --explain`, the Book or the std source can answer: don't answer it. Name where to look (page + section, or the command) and ask them to come back with what they found.
+- Ladder for any stuck moment, one rung at a time: (1) read the full compiler error, (2) `rustc --explain`, (3) std/crate docs and the Book, (4) grep crate source, (5) a leading question from the AI, (6) a precise pointer (line + "compare with line N"), (7) only then a worked explanation. Ask which rungs they've already tried.
+- Concept teaching: point at the Book chapter / Rust by Example first and have the learner explain it back in their own words. The AI corrects the explanation instead of lecturing up front.
+- Quizzes stay, but run them *after* the learner has read the material, not as a replacement for reading it.
+- Code reviews happen only after the learner has run `cargo build`, `cargo clippy` and the tests, and fixed what those flag. Pointers are for what the tools can't catch (logic, design).
+- No AI-written explanations of the learner's own code unless they ask. Don't summarize what the compiler already said.
+- Ask the learner to write a one-line "what I tried" before the AI helps. Log how many rungs they climbed on their own in the Quiz log.
+
 **Session start**
 - Read `## Progress notes` and `## Quiz log` to see where things stand and what was deferred.
 - Read `src/`, then run `cargo build` and `cargo clippy` to see the current state of the code.
@@ -52,7 +62,7 @@ Read this whole file at the start of every session. It is the source of truth fo
 - Be encouraging, not preachy. If the learner is hard on themselves, reassure briefly and move on.
 
 **Learner profile**
-- Background: Go, Python, Odin. Learning Rust to work without AI.
+- Background: Go, Python, Odin. Learning Rust to work without AI. Said on 2026-11-16 (commit c162507) that they need to be more disciplined about not using AI to teach them. Wants the plan to push that.
 - Prefers working code first and idiomatic refactors later.
 - Wants to stay close to the TS reference and their own Odin port.
 - Finds Rust cumbersome and tends to polish small errors before the program works. Remind gently: lazy first, refactor after it runs.
@@ -60,12 +70,26 @@ Read this whole file at the start of every session. It is the source of truth fo
 
 ## Independence habits
 
-- Read the whole compiler error before doing anything.
-- `rustc --explain E0XXX` for any error code.
-- `cargo doc --open` for offline docs of my crate and its dependencies.
-- docs.rs / std docs before asking AI.
-- `cargo clippy` once it compiles.
-- References: [The Rust Book](https://doc.rust-lang.org/book/), [Rust by Example](https://doc.rust-lang.org/rust-by-example/), [std docs](https://doc.rust-lang.org/std/).
+Order to try before asking AI (the ladder):
+
+1. Read the whole compiler error, top to bottom, including the `help:` lines.
+2. `rustc --explain E0XXX` for any error code.
+3. `cargo doc --open` for offline docs of my crate and its dependencies; std docs for std types.
+4. The Book chapter for the concept (see the Reading line on each milestone).
+5. Grep crate source in `~/.cargo/registry/src/*/<crate>-<version>/` and read the examples and tests.
+6. Rust by Example / [users.rust-lang.org](https://users.rust-lang.org/) / Stack Overflow search (reading, not posting).
+7. Write a 3-line scratch file (`cargo new --bin scratch` or the playground) that isolates the question and run it.
+8. Only then ask AI, and say what I tried.
+
+Habits:
+- `cargo clippy` once it compiles; `cargo fmt` always.
+- Make a prediction before running ("this should print X / fail with Y") and check it.
+- After reading a Book chapter, close it and explain the idea in my own words in the notes below. If I can't, reread.
+- Keep a `NOTES.md` or the "Learned" lists below in my own words, not AI's.
+- Rewrite, don't paste: retype any snippet from docs so I engage with every token.
+- One AI-free milestone step per session as a minimum: try the whole step through rung 7 first.
+
+References: [The Rust Book](https://doc.rust-lang.org/book/), [Rust by Example](https://doc.rust-lang.org/rust-by-example/), [std docs](https://doc.rust-lang.org/std/), [Rustlings](https://github.com/rust-lang/rustlings) for drills, [Rust std source on docs.rs ("source" links)](https://docs.rs/).
 
 ## Odin progress (`archive/`)
 
@@ -96,7 +120,7 @@ Notes on `archive/fill.odin` to keep in mind when porting:
   - Done when `cargo run -- images/testinput.png` writes `out.png`.
   - Concepts: cargo/crates, `Result` and `?`, `Vec`, `as` casts, Drop vs `defer`.
   - Reading: Book ch. 1–3, 9.
-- [ ] **M1: k-means.** (🟡 ~90%, 2026-11-16: bit chop, distance, step, run and weighted unique colors all work; `hawaii.jpg` gives a clean 10-color posterization in seconds with `--release`. Remaining: seed the RNG, `i64` for sums/counts.) `Rgb` struct, bit chop, distance, step/run, weighted unique colors, seeded RNG (the `rand` crate, no `random.ts` port).
+- [x] **M1: k-means.** (done 2026-11-17: bit chop, distance, step, run and weighted unique colors all work; seeded `StdRng` verified by hash (same seed same output, different seed different output); `i64` sums/counts.) `Rgb` struct, bit chop, distance, step/run, weighted unique colors, seeded RNG (the `rand` crate, no `random.ts` port).
   - Done when the quantized PNG looks right (decided 2026-11-16: no need to match the Odin output, this isn't a pure port).
   - Concepts: `&[T]` vs `&mut [T]`, ownership, `#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]`, `mod` files, `HashMap`, `--release`.
   - Reading: Book ch. 4, 5, 7, 8.
@@ -202,10 +226,20 @@ TS reference verified 2026-11-16 (`~/workspace/paintbynumbersgenerator`, now clo
 - Seed: `randomSeed === 0 ? time : seed`. Initial centroids are random picks from the unique-color list (can repeat; Rust's `index::sample` avoids repeats).
 - TS keeps centroids as floats; Rust truncates to `u8` each step. Possible small palette difference, fine for now.
 
+### M1 finish (2026-11-17, AI-free mode)
+
+- **Seeded RNG:** `let mut rng: StdRng = StdRng::seed_from_u64(2);` then `index::sample(&mut rng, ...)`. Verified with `sha256sum` on `hawaii.jpg` (same seed same hash, seed 1 vs 2 different hash). `testinput.png` isn't a valid test: only 4 unique colors, so `k` clamps and the RNG has no effect.
+- **Learned about types:** a trait method call like `SeedableRng::seed_from_u64(1)` doesn't say which type implements it; the compiler needs to infer one, and failed. Fix: name the type (`<StdRng as SeedableRng>::...` or a `: StdRng` annotation on the `let`). `sample` takes `rng: &mut R` with `R: Rng + ?Sized`. (The tutor's early hints blamed the `&mut`, which was wrong.) `&mut` is a pointer to a value; `y = &mut 5` has type `&mut i32`, and `bump(y)` changes the `5` it points at (scratch-file test).
+- **Overflow:** max sum for a 4000x4000 all-255 image is 4,080,000,000, about 1.9x `i32::MAX` (2,147,483,647). Debug panics, release wraps. `counts` is `i64` to match `sums` for the division, avoiding casts.
+- **Left (cosmetic):** seed `2` could be a `const`; run `cargo fmt` (trailing space on the `StdRng` line); `output/` still not in `.gitignore`.
+
 ### Next up
 
-1. Finish M1: seed the RNG, switch `sums`/`counts` to `i64`. Then tick the M1 box.
-2. Then M2: change `run_kmeans` to return `(centroids, color→index lookup or per-pixel indices)` instead of overwriting `pixels`, and build `Grid<u8>` of palette indices (generics, `impl` blocks). Probe first: generics (`struct Grid<T>`), `impl` blocks, returning tuples/structs.
+AI-free mode is on (see the AI-free-first rule). For each item, the learner attempts it through the ladder first.
+
+1. Commit M1. Add `output/` to `.gitignore` (and `git rm --cached` what's tracked), run `cargo fmt`.
+2. Before M2, read Book ch. 10.1 (generics) and ch. 5 `impl` blocks, then explain `struct Grid<T>` in your own words in the notes. Then probe.
+3. M2: change `run_kmeans` to return `(centroids, color→index lookup or per-pixel indices)` instead of overwriting `pixels`, and build `Grid<u8>` of palette indices (generics, `impl` blocks). Learner writes the design (struct fields, function signatures) in a comment first, then codes it.
 3. Recheck `as` casts when `i64` appears (int→int truncates, float→int saturates). Still unprobed: `--release` details beyond the command.
 4. Commit habit: the learner commits at the end of sessions (`output/` is still not in `.gitignore`).
 
@@ -229,4 +263,5 @@ TS reference verified 2026-11-16 (`~/workspace/paintbynumbersgenerator`, now clo
 | 2026-11-16 | M1 build | Wrote `preprocess`, `get_distance`, `step_kmeans`, `run_kmeans` mostly independently; diagnosed the `vec![0; n]` panic from a pointer; used `&[T]`/`&mut [T]` correctly | `vec![a, b]` vs `vec![a; n]`, forgetting to update `min_distance`, stop-threshold reasoning (`0.0` vs `1.0`), `--release` invocation |
 | 2026-11-16 | M1 probe 2 | `entry().or_insert(0)` with `*` deref (Q1), `HashMap` iteration order is arbitrary (Q2) | Didn't connect map order to determinism: seeded RNG still gives different results if the `Vec` built from a `HashMap` isn't sorted. Taught (`sort_by_key` on `(r,g,b)`) |
 | 2026-11-16 | M1 weighted build | Wrote `count_colors`, weighted `step_kmeans`, and the color→centroid lookup with pointers; fixed the `assignments` sizing and `sample` args after the panic and review; used `zip` + destructuring patterns; took the "lazy first" approach | Ref vs value conversions (`.iter()` vs `.into_iter()`, `*`, `.clone()` on an iterator), lazy iterators doing nothing unconsumed, index spaces (unique-color index vs pixel index), `sample(rng, length, amount)` order, determinism needs a sorted `Vec` |
+| 2026-11-17 | M1 finish (AI-free mode) | Found `SeedableRng`/`make_rng` in docs; typo-diagnosed a path; fixed the trait-inference error from compiler output; verified determinism by hashing and a changed seed; correct overflow arithmetic; knew debug panics, release wraps; reasoned `counts` as `i64` for the division | Rungs climbed alone: 1-3 (error, docs, source). Gaps: `&mut` as a pointer vs the value (predicted `6 5`, was `6 6`); type vs reference-to-type (`y` is `&mut i32`); inference with trait methods (needs a named type); `StdRng` isn't from Rust's `std`; didn't check that `testinput.png` is too small to test the RNG until prompted |
 | 2026-11-10 | M0 build | Shipped M0 independently after doc-navigation coaching; correctly pushed back on premature `usize` advice, then chose `usize` with boundary casts | Finding methods in docs (trait vs inherent, struct-level examples): improving. Tuple struct field syntax: taught |
