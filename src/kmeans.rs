@@ -91,7 +91,7 @@ fn step_kmeans(
     total_distance
 }
 
-pub fn run_kmeans(pixels: &mut [Rgb], k: usize) {
+pub fn run_kmeans(pixels: &mut [Rgb], k: usize) -> (Vec<Rgb>, HashMap<Rgb, usize>) {
     let pixel_counts = count_colors(pixels);
     let mut rng: StdRng = StdRng::seed_from_u64(SEED);
     let samples = index::sample(&mut rng, pixel_counts.len(), k.min(pixel_counts.len()));
@@ -112,9 +112,7 @@ pub fn run_kmeans(pixels: &mut [Rgb], k: usize) {
     for (&(color, _), &assignment) in pixel_counts.iter().zip(assignments.iter()) {
         lookup.insert(color, assignment);
     }
-    for pixel in (*pixels).iter_mut() {
-        *pixel = centroids[*lookup.get(pixel).unwrap()];
-    }
 
     println!("finished assigning!");
+    (centroids, lookup)
 }

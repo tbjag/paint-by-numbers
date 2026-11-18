@@ -1,8 +1,9 @@
 mod kmeans;
+mod colors;
 
 use image::{ImageBuffer, ImageReader};
 
-use crate::kmeans::{preprocess, run_kmeans};
+use crate::{colors::{Grid, repaint}, kmeans::{preprocess, run_kmeans}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 pub struct Rgb {
@@ -36,7 +37,9 @@ fn main() {
     let k = 10;
 
     preprocess(&mut pixels);
-    run_kmeans(&mut pixels, k);
+    let (color_palette, color_lookup) = run_kmeans(&mut pixels, k);
+    let _grid = Grid::new(&pixels, &color_lookup, width, height);
+    repaint(&mut pixels, color_palette, &color_lookup);
 
     let output = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
         let idx = y as usize * width + x as usize;

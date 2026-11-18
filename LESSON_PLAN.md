@@ -233,15 +233,35 @@ TS reference verified 2026-11-16 (`~/workspace/paintbynumbersgenerator`, now clo
 - **Overflow:** max sum for a 4000x4000 all-255 image is 4,080,000,000, about 1.9x `i32::MAX` (2,147,483,647). Debug panics, release wraps. `counts` is `i64` to match `sums` for the division, avoiding casts.
 - **Left (cosmetic):** seed `2` could be a `const`; run `cargo fmt` (trailing space on the `StdRng` line); `output/` still not in `.gitignore`.
 
+### M2 in progress (2026-11-18)
+
+**Decision (learner, 2026-11-18):** no generics for now. `Grid` is a concrete struct (`width`, `height`, `pixels: Vec<u8>`) in `src/colors.rs`. Make it `Grid<T>` at M3, when `Grid<u32>` is needed. `Index` trait deferred (clunky `grid.get(x, y)` is fine; prototype first).
+
+State of the code (uncommitted at time of writing):
+- `run_kmeans` returns `(Vec<Rgb>, HashMap<Rgb, usize>)` = `(centroids, color->centroid-index lookup)`. Its repaint loop was removed.
+- `colors.rs`: `Grid::new(&pixels, &lookup, width, height)` walks the chopped pixels in row-major order; `get(x, y)` uses `y * width + x`. A `repaint` fn in `colors.rs` still repaints `pixels` via the lookup (old way).
+- `main.rs`: `mod colors;`, builds `_grid`, then calls `repaint`. Output sha256 on `hawaii.jpg` is identical to the pre-M2 output (`ead666f3...`).
+- Build clean. Clippy: `Grid::get` unused. `cargo fmt --check` has diffs.
+
+Learned this session (with coaching):
+- `impl<T> Grid<T>`: the `<T>` after `impl` *declares* the placeholder, `Grid<T>` *uses* it. `impl Grid<u8>` needs no declaration (concrete type). `impl<T>` methods apply to every T; `impl Grid<u8>` methods only to u8.
+- Moving an element out of a `Vec<T>` by index needs `T: Copy` (or return `&T`).
+- `assignments` has one entry per *unique color* (`pixel_counts.len()`), values are centroid indices `0..k`. Not per pixel. The `lookup` map bridges color -> index.
+- Lookup keys are bit-chopped colors, so build the grid *before* any repaint (centroid colors aren't keys -> `unwrap` on `None` panic).
+- 2D index: `y * width + x`, not `x * width + y`.
+- `mod x;` declares a file in the module tree; `use` only imports. Missing `mod colors;` was why the file wasn't registered.
+
+Deferred: `Index` trait and associated types (Book ch. 20.2, std `ops::Index`), revisit at M3. `#[derive(Copy)]` on `Grid` was removed (`Vec` isn't `Copy`).
+
 ### Next up
 
 AI-free mode is on (see the AI-free-first rule). For each item, the learner attempts it through the ladder first.
 
-1. Commit M1. Add `output/` to `.gitignore` (and `git rm --cached` what's tracked), run `cargo fmt`.
-2. Before M2, read Book ch. 10.1 (generics) and ch. 5 `impl` blocks, then explain `struct Grid<T>` in your own words in the notes. Then probe.
-3. M2: change `run_kmeans` to return `(centroids, color→index lookup or per-pixel indices)` instead of overwriting `pixels`, and build `Grid<u8>` of palette indices (generics, `impl` blocks). Learner writes the design (struct fields, function signatures) in a comment first, then codes it.
-3. Recheck `as` casts when `i64` appears (int→int truncates, float→int saturates). Still unprobed: `--release` details beyond the command.
-4. Commit habit: the learner commits at the end of sessions (`output/` is still not in `.gitignore`).
+1. **Finish M2:** render the PNG from `grid` + `color_palette` only (`color_palette[grid.get(x, y) as usize]`), not via `repaint`. Then drop `repaint` and check what `pixels` is still used for. Compare sha256 of `output/out.png` with `ead666f3...` on `hawaii.jpg`. Done when identical.
+2. Open questions for the learner: keep `lookup` after the grid exists? Does `Grid` need `height` stored? Why is `_grid` hiding the unused warning?
+3. Run `cargo fmt` and `cargo clippy`. Commit.
+4. Then M3 (facet building, Book ch. 11). Probe first.
+5. Recheck `as` casts when next touched (`usize as u8` for palette index is fine while `k` is small). Still unprobed: `--release` details beyond the command.
 
 ## Rust shifts from Go/Python/Odin
 
@@ -265,3 +285,4 @@ AI-free mode is on (see the AI-free-first rule). For each item, the learner atte
 | 2026-11-16 | M1 weighted build | Wrote `count_colors`, weighted `step_kmeans`, and the color→centroid lookup with pointers; fixed the `assignments` sizing and `sample` args after the panic and review; used `zip` + destructuring patterns; took the "lazy first" approach | Ref vs value conversions (`.iter()` vs `.into_iter()`, `*`, `.clone()` on an iterator), lazy iterators doing nothing unconsumed, index spaces (unique-color index vs pixel index), `sample(rng, length, amount)` order, determinism needs a sorted `Vec` |
 | 2026-11-17 | M1 finish (AI-free mode) | Found `SeedableRng`/`make_rng` in docs; typo-diagnosed a path; fixed the trait-inference error from compiler output; verified determinism by hashing and a changed seed; correct overflow arithmetic; knew debug panics, release wraps; reasoned `counts` as `i64` for the division | Rungs climbed alone: 1-3 (error, docs, source). Gaps: `&mut` as a pointer vs the value (predicted `6 5`, was `6 6`); type vs reference-to-type (`y` is `&mut i32`); inference with trait methods (needs a named type); `StdRng` isn't from Rust's `std`; didn't check that `testinput.png` is too small to test the RNG until prompted |
 | 2026-11-10 | M0 build | Shipped M0 independently after doc-navigation coaching; correctly pushed back on premature `usize` advice, then chose `usize` with boundary casts | Finding methods in docs (trait vs inherent, struct-level examples): improving. Tuple struct field syntax: taught |
+| 2026-11-18 | M2 probe (generics/impl/Index) | Monomorphization: one compiled copy per concrete type (Q1); `T` not `Copy` can't move out of a `Vec` by index (Q3). After a scratch-file exercise: `impl<T>` declares, `Grid<T>` uses; `impl Grid<u8>` needs no declaration | `impl Grid<T>` without declaring `T` ("i dont know"); `Index` trait and associated types (unsure, deferred to M3 by learner choice). Also: `x * width + y` (should be `y * width + x`); thought `assignments` had one entry per pixel (it's per unique color); repainting before building the grid broke the lookup. Rungs climbed alone: 1 (read errors); asked AI early on associated types and the 2D index formula |
