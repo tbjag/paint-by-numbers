@@ -25,3 +25,33 @@ Two pieces of background help with the middle stages:
 - find logging library
 - do we need to defer images/data if we have pulled everything out of it?
 - automatic conversion using ffmpeg or something if raylib cant parse the image
+
+## etc
+i get a color map results
+imgColor indices which is a 2D array of uints
+and colors by index which is an rgb[]
+im assuming they map where the number in the 2d array maps to a color on the index
+poor mans hashmap?
+
+for N number of pixel clean up runs:
+	run pixel cleanup
+	builds facets // i dont know if these are needed
+	reduces facets // ^^
+
+pixel cleanup function:
+	create a color matrix - 2D array of rgb index, go through each one and find the distance between each point
+	get surrounding and current pixel (top bottom left right)
+	if all are the same as curr pixel do nothing
+	if top and bottom are the same
+		get color distance between curr and top/bottom
+		colorDistances[cur][top];
+		set current pixel to whatever has the lowest distance
+	else if left/right same as curr
+		do the same as top/bottom
+	whats interesting is that its else if so only one of the cleanups happens
+
+then build facets & reduce facets once after that
+
+build_facets:
+
+reduct_facets:
